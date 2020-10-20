@@ -39,6 +39,19 @@
 #include "clock_config.h"
 #include "MK66F18.h"
 #include "fsl_debug_console.h"
+/*FreeRtos specific header includes*/
+#include "FreeRTOS.h"
+#include "FreeRTOSConfig.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
+#include "event_groups.h"
+/*Project specific header includes*/
+#include "rtos_uart.h"
+#include "rtos_i2c.h"
+#include "BMI160.h"
+#include "AHRS.h"
+#include "mahony.h"
 /* TODO: insert other include files here. */
 
 /* TODO: insert other definitions and declarations here. */
@@ -59,11 +72,24 @@ int main(void) {
 
     PRINTF("Hello World\n");
 
-    /* Force the counter to be placed into memory. */
-    volatile static int i = 0 ;
+	/*UART config*/
+    freertos_uart_config_t config;
+	config.baudrate = 115200;
+	config.rx_pin = 16;
+	config.tx_pin = 17;
+	config.pin_mux = kPORT_MuxAlt3;
+	config.uart_number = freertos_uart0;
+	config.port = freertos_uart_portB;
+	freertos_uart_init(config);
+
+    xTaskCreate(BMI160_Initalization, "BMI160_Initialization", 100, NULL, configMAX_PRIORITIES-1,NULL);
+    xTaskCreate(get_BMI160_data, "Get_BMI160_Data", 500 , NULL,configMAX_PRIORITIES-1,NULL);
+    xTaskCreate(UART_SEND_DATA, "UART_SEND_DATA", 500 , NULL,configMAX_PRIORITIES-1,NULL);
+
+    vTaskStartScheduler();
     /* Enter an infinite loop, just incrementing a counter. */
     while(1) {
-        i++ ;
+
         /* 'Dummy' NOP to allow source level single stepping of
             tight while() loop */
         __asm volatile ("nop");
