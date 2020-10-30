@@ -69,7 +69,7 @@ typedef struct {
 
 
 /*Initialization function*/
-void BMI160_Initalization(void);
+void BMI160_Initalization(void*args);
 /*Accelerometer read function*/
 Accel_data_t BMI160_ACCEL_Read(void);
 /*Gyroscope read function*/

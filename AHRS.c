@@ -10,8 +10,6 @@
 #include "BMI160.h"
 #include <math.h>
 
-#define PYTHON 1
-#define AHRS_SENDUART 1
 
 // Float conversion variables
 Accel_data_t RawAccel_data; /*  Raw accelerometer value*/
@@ -21,14 +19,11 @@ fGyro_data_t conv_Gyro;  /* Converted Gyroscope value */
 
 void get_BMI160_data(void * args)
 {
-	uint32_t task = 0;
-	TickType_t xLastWakeTime = xTaskGetTickCount();
 
+	TickType_t xLastWakeTime = xTaskGetTickCount();
 	vTaskDelay(pdMS_TO_TICKS(1000));
 
-
 	while (1) {
-		task++;
 
 		RawAccel_data = BMI160_ACCEL_Read(); // Read accelerometer
 		RawGyro_data = BMI160_GRYO_Read();	// Read gyroscope
@@ -61,4 +56,41 @@ void Gyroscope_conversion(void) {
 	conv_Gyro.z = (float) RawGyro_data.z * convGyro_factor;
 //	PRINTF("Gx: %f  Gy: %f  Gz: %f\n\r", float_G.x, float_G.y, float_G.z);
 
+}
+
+void UART_SEND_DATA(void * args)
+{
+	uint32_t task = 0;
+		TickType_t xLastWakeTime = xTaskGetTickCount();
+	 	/*UART config*/
+		freertos_uart_config_t config;
+		config.baudrate = 115200;
+		config.rx_pin = 16;
+		config.tx_pin = 17;
+		config.pin_mux = kPORT_MuxAlt3;
+		config.uart_number = freertos_uart0;
+		config.port = freertos_uart_portB;
+		freertos_uart_init(config);
+
+		vTaskDelay(pdMS_TO_TICKS(1000));// Delay task until  1s
+
+		while (1) {
+			task ++;
+			MahonyAHRSEuler_t euler;
+			/*Data return*/
+			euler = MahonyAHRSupdateIMU(conv_Gyro.x, conv_Gyro.y, conv_Gyro.z,conv_Accel.x, conv_Accel.y, conv_Accel.z);
+			//PRINTF("Roll: %f  Pitch: %f  Yaw: %f\n\r", euler.roll, euler.pitch, euler.yaw);
+
+			comm_msg_t msg;
+			msg.header = HEADER;
+			msg.x = euler.yaw;
+			msg.y = euler.pitch;
+			msg.z = euler.roll;
+
+			PRINTF("Yaw: %f	Pitch: %f	Roll: %f\n\r", msg.x, msg.y, msg.z);
+
+			freertos_uart_send(freertos_uart0, (uint8_t*) &msg, sizeof(msg));
+
+			vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(AHRS_UART_TIME));// Delay task until  5ms
+		}
 }

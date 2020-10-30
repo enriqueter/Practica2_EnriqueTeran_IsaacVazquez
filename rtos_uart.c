@@ -213,6 +213,7 @@ static void fsl_uart_callback(UART_Type *base, uart_handle_t *handle, status_t s
     {
       xSemaphoreGiveFromISR(freertos_uart_handles[freertos_uart1].tx_sem, &xHigherPriorityTaskWoken);
     }
+    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
   }
 
   if (kStatus_UART_RxIdle == status)
@@ -225,7 +226,8 @@ static void fsl_uart_callback(UART_Type *base, uart_handle_t *handle, status_t s
     {
       xSemaphoreGiveFromISR(freertos_uart_handles[freertos_uart1].rx_sem, &xHigherPriorityTaskWoken);
     }
+    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
   }
 
-  portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+
 }

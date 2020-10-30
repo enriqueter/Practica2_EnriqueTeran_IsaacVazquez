@@ -51,7 +51,7 @@
 #include "rtos_i2c.h"
 #include "BMI160.h"
 #include "AHRS.h"
-#include "mahony.h"
+#include "Mahony.h"
 /* TODO: insert other include files here. */
 
 /* TODO: insert other definitions and declarations here. */
@@ -59,33 +59,28 @@
 /*
  * @brief   Application entry point.
  */
+typedef struct
+{
+	QueueHandle_t queue_freertos;
+	SemaphoreHandle_t mutex_print_freertos;
+	SemaphoreHandle_t semaphore_FreeRTOs;
+	EventGroupHandle_t event_FreeRTOs;
+} parameters_task_t;
+
+
 int main(void) {
 
   	/* Init board hardware. */
     BOARD_InitBootPins();
     BOARD_InitBootClocks();
     BOARD_InitBootPeripherals();
-#ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
     /* Init FSL debug console. */
     BOARD_InitDebugConsole();
-#endif
 
-    PRINTF("Hello World\n");
 
-	/*UART config*/
-    freertos_uart_config_t config;
-	config.baudrate = 115200;
-	config.rx_pin = 16;
-	config.tx_pin = 17;
-	config.pin_mux = kPORT_MuxAlt3;
-	config.uart_number = freertos_uart0;
-	config.port = freertos_uart_portB;
-	freertos_uart_init(config);
-
-    xTaskCreate(BMI160_Initalization, "BMI160_Initialization", 100, NULL, configMAX_PRIORITIES-1,NULL);
-    xTaskCreate(get_BMI160_data, "Get_BMI160_Data", 500 , NULL,configMAX_PRIORITIES-1,NULL);
-    xTaskCreate(UART_SEND_DATA, "UART_SEND_DATA", 500 , NULL,configMAX_PRIORITIES-1,NULL);
-
+    xTaskCreate(BMI160_Initalization, "BMI160_Initialization", 100, NULL, configMAX_PRIORITIES-1,NULL);/*Task for initialization*/
+    xTaskCreate(get_BMI160_data, "Get_BMI160_Data", 500 , NULL,configMAX_PRIORITIES-1,NULL);/*Task to get data*/
+    xTaskCreate(UART_SEND_DATA, "UART_SEND_DATA", 1000 , NULL,configMAX_PRIORITIES-1,NULL);/*Task to send the data via Uart to the PC*/
     vTaskStartScheduler();
     /* Enter an infinite loop, just incrementing a counter. */
     while(1) {
@@ -96,3 +91,5 @@ int main(void) {
     }
     return 0 ;
 }
+
+
